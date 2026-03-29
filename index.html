@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>반짝반짝 영단어 퀴즈</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff9a9e;
+            --secondary-color: #fad0c4;
+            --accent-color: #ffecd2;
+            --text-color: #5d5d5d;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--accent-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        #game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            border: 5px solid var(--secondary-color);
+        }
+
+        h1 { color: #ff6b6b; font-size: 2.5rem; margin-bottom: 20px; }
+        .info-text { font-size: 1.2rem; margin-bottom: 20px; }
+        
+        input[type="text"] {
+            padding: 12px;
+            font-size: 1.2rem;
+            border-radius: 15px;
+            border: 2px solid var(--secondary-color);
+            width: 80%;
+            margin-bottom: 20px;
+            outline: none;
+            text-align: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.3rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-family: 'Jua', sans-serif;
+        }
+
+        button:hover { transform: scale(1.05); }
+
+        .quiz-box { display: none; }
+        .word-display { font-size: 3rem; color: #4834d4; margin: 20px 0; }
+        .mean-display { font-size: 2.5rem; color: #eb4d4b; margin: 20px 0; }
+        
+        .options { display: grid; gap: 10px; margin-top: 20px; }
+        .option-btn { background: #f0f0f0; color: #333; font-size: 1.2rem; padding: 15px; }
+        .option-btn:hover { background: var(--secondary-color); }
+
+        #feedback { font-size: 1.5rem; font-weight: bold; margin-top: 20px; height: 30px; }
+        .correct { color: #4cd137; }
+        .wrong { color: #e84118; }
+        
+        .progress { margin-top: 20px; font-size: 0.9rem; color: #999; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="start-screen">
+        <h1>🌈 단어 팡팡!</h1>
+        <p class="info-text">너의 이름을 알려줘!</p>
+        <input type="text" id="user-name" placeholder="이름을 입력하세요">
+        <br>
+        <button onclick="startGame()">게임 시작!</button>
+    </div>
+
+    <div id="quiz-screen" class="quiz-box">
+        <div id="stage-info" style="color: #ff9f43; font-size: 1.2rem;"></div>
+        <div id="question-area">
+            </div>
+        <div id="feedback"></div>
+        <div class="progress" id="progress-bar"></div>
+    </div>
+
+    <div id="result-screen" class="quiz-box">
+        <h1>🎉 참 잘했어요!</h1>
+        <p id="final-score" style="font-size: 2rem;"></p>
+        <button onclick="location.reload()">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    const vocabulary = [
+        { eng: 'wear', kor: '입다/쓰다' }, { eng: 'shirt', kor: '셔츠' },
+        { eng: 'jacket', kor: '재킷' }, { eng: 'skirt', kor: '치마' },
+        { eng: 'dress', kor: '드레스/원피스' }, { eng: 'shoes', kor: '신발' },
+        { eng: 'socks', kor: '양말' }, { eng: 'pants', kor: '바지' },
+        { eng: 'jeans', kor: '청바지' }, { eng: 'shorts', kor: '반바지' },
+        { eng: 'clothes', kor: '옷' }, { eng: 'uniform', kor: '교복/제복' },
+        { eng: 'ring', kor: '반지' }, { eng: 'cap', kor: '모자' },
+        { eng: 'tie', kor: '넥타이' }, { eng: 'gloves', kor: '장갑' },
+        { eng: 'umbrella', kor: '우산' }, { eng: 'pocket', kor: '주머니' },
+        { eng: 'button', kor: '단추' }, { eng: 'put on', kor: '입다' }
+    ];
+
+    let userName = "";
+    let currentSet = 1;
+    let currentIdx = 0;
+    let score = 0;
+    let setWords = [];
+
+    function startGame() {
+        userName = document.getElementById('user-name').value || "친구";
+        if(!userName) return alert("이름을 입력해줘!");
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadSet(1);
+    }
+
+    function loadSet(setNum) {
+        currentSet = setNum;
+        currentIdx = 0;
+        setWords = [...vocabulary].sort(() => Math.random() - 0.5);
+        showQuestion();
+    }
+
+    function maskWord(word, percent) {
+        let masked = word.split('');
+        let count = Math.ceil(word.length * (percent / 100));
+        let indices = Array.from({length: word.length}, (_, i) => i);
+        
+        // 띄어쓰기는 가리지 않음
+        indices = indices.filter(i => word[i] !== ' ');
+        
+        for(let i=0; i<count && indices.length > 0; i++) {
+            let randIdx = Math.floor(Math.random() * indices.length);
+            let target = indices.splice(randIdx, 1)[0];
+            masked[target] = '_';
+        }
+        return masked.join('');
+    }
+
+    function showQuestion() {
+        const area = document.getElementById('question-area');
+        const feedback = document.getElementById('feedback');
+        const stageInfo = document.getElementById('stage-info');
+        const progress = document.getElementById('progress-bar');
+        
+        feedback.innerHTML = "";
+        stageInfo.innerText = `세트 ${currentSet}: ${getSetTitle()}`;
+        progress.innerText = `문제: ${currentIdx + 1} / ${setWords.length}`;
+        
+        const item = setWords[currentIdx];
+        let html = "";
+
+        if(currentSet === 1) {
+            // 세트 1: 객관식
+            html = `<div class="word-display">${item.eng}</div><div class="options">`;
+            let choices = [item.kor];
+            while(choices.length < 4) {
+                let rand = vocabulary[Math.floor(Math.random()*vocabulary.length)].kor;
+                if(!choices.includes(rand)) choices.push(rand);
+            }
+            choices.sort(() => Math.random() - 0.5);
+            choices.forEach(c => {
+                html += `<button class="option-btn" onclick="checkAnswer('${c}')">${c}</button>`;
+            });
+            html += `</div>`;
+        } else {
+            // 세트 2,3,4: 주관식
+            let maskPercent = currentSet === 2 ? 20 : (currentSet === 3 ? 50 : 100);
+            let hint = maskWord(item.eng, maskPercent);
+            html = `
+                <div class="mean-display">${item.kor}</div>
+                <div style="font-size: 1.5rem; letter-spacing: 5px; margin-bottom:10px;">${hint}</div>
+                <input type="text" id="answer-input" onkeyup="if(window.event.keyCode==13) checkAnswer(this.value)" autofocus>
+                <br><button onclick="checkAnswer(document.getElementById('answer-input').value)">확인!</button>
+            `;
+        }
+        area.innerHTML = html;
+        if(document.getElementById('answer-input')) document.getElementById('answer-input').focus();
+    }
+
+    function getSetTitle() {
+        if(currentSet === 1) return "뜻 찾기 (객관식)";
+        if(currentSet === 2) return "단어 채우기 (힌트 많음)";
+        if(currentSet === 3) return "단어 채우기 (힌트 조금)";
+        return "단어 쓰기 (힌트 없음)";
+    }
+
+    function checkAnswer(userAns) {
+        const correctAns = currentSet === 1 ? setWords[currentIdx].kor : setWords[currentIdx].eng;
+        const feedback = document.getElementById('feedback');
+        
+        if(userAns.trim().toLowerCase() === correctAns.toLowerCase()) {
+            feedback.innerHTML = "<span class='correct'>정답이에요! 🌟</span>";
+            score += 10;
+        } else {
+            feedback.innerHTML = `<span class='wrong'>아쉬워요! 답은 '${correctAns}'</span>`;
+        }
+
+        setTimeout(() => {
+            currentIdx++;
+            if(currentIdx < setWords.length) {
+                showQuestion();
+            } else if(currentSet < 4) {
+                loadSet(currentSet + 1);
+            } else {
+                showResult();
+            }
+        }, 1500);
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = `${userName}의 총점: ${score}점 / 800점`;
+    }
+</script>
+
+</body>
+</html>
