@@ -11,8 +11,6 @@
             --secondary-color: #fad0c4;
             --accent-color: #ffecd2;
             --text-color: #5d5d5d;
-            --correct-color: #4cd137;
-            --wrong-color: #e84118;
         }
 
         body {
@@ -21,10 +19,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             color: var(--text-color);
-            overflow: hidden;
         }
 
         #game-container {
@@ -33,10 +30,9 @@
             border-radius: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 90%;
-            max-width: 500px;
+            max-width: 550px;
             text-align: center;
             border: 5px solid var(--secondary-color);
-            position: relative;
         }
 
         h1 { color: #ff6b6b; font-size: 2.5rem; margin-bottom: 20px; }
@@ -51,7 +47,6 @@
             margin-bottom: 20px;
             outline: none;
             text-align: center;
-            font-family: 'Jua', sans-serif;
         }
 
         button {
@@ -73,21 +68,16 @@
         .word-display { font-size: 3.5rem; color: #4834d4; margin: 20px 0; }
         .mean-display { font-size: 2.8rem; color: #eb4d4b; margin: 20px 0; }
         
-        .options { display: grid; gap: 10px; margin-top: 20px; }
-        .option-btn { background: #f9f9f9; color: #333; font-size: 1.2rem; padding: 15px; border: 2px solid #eee; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .option-btn { background: #f9f9f9; color: #333; font-size: 1.1rem; padding: 15px; border: 2px solid #eee; }
         .option-btn:hover { background: var(--secondary-color); border-color: var(--primary-color); }
 
         #feedback { font-size: 1.5rem; font-weight: bold; margin-top: 20px; height: 40px; }
-        .correct { color: var(--correct-color); animation: bounce 0.5s; }
-        .wrong { color: var(--wrong-color); }
+        .correct { color: #4cd137; }
+        .wrong { color: #e84118; }
         
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .progress { margin-top: 20px; font-size: 1rem; color: #aaa; }
-        .hint-text { font-size: 1.8rem; letter-spacing: 8px; margin-bottom: 15px; color: #666; }
+        .progress { margin-top: 20px; font-size: 1rem; color: #888; }
+        .score-box { font-size: 1.2rem; color: #ff9f43; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -95,40 +85,44 @@
 <div id="game-container">
     <div id="start-screen">
         <h1>🌈 단어 팡팡!</h1>
-        <p class="info-text">안녕! 너의 이름을 알려줘!</p>
-        <input type="text" id="user-name" placeholder="이름을 입력하세요" maxlength="10">
+        <p class="info-text">사진 속 단어들을 정복해볼까?<br>너의 이름을 알려줘!</p>
+        <input type="text" id="user-name" placeholder="이름을 입력하세요">
         <br>
-        <button onclick="startGame()">게임 시작하기!</button>
+        <button onclick="startGame()">게임 시작!</button>
     </div>
 
     <div id="quiz-screen" class="quiz-box">
-        <div id="stage-info" style="color: #ff9f43; font-size: 1.2rem; margin-bottom: 10px;"></div>
+        <div id="stage-info" style="color: #ff9f43; font-size: 1.4rem; font-weight: bold;"></div>
+        <div class="score-box">현재 점수: <span id="current-score">0</span>점</div>
         <div id="question-area"></div>
         <div id="feedback"></div>
         <div class="progress" id="progress-bar"></div>
     </div>
 
     <div id="result-screen" class="quiz-box">
-        <h1>🎉 대단해! 끝냈어!</h1>
-        <p id="final-score" style="font-size: 2rem; margin: 20px 0;"></p>
-        <div id="score-comment" style="font-size: 1.2rem; margin-bottom: 20px;"></div>
-        <button onclick="location.reload()">처음부터 다시 하기</button>
+        <h1>🎉 대단해! 끝났어!</h1>
+        <p id="final-score" style="font-size: 2.2rem; color: #4834d4;"></p>
+        <p id="evaluation" style="font-size: 1.5rem;"></p>
+        <button onclick="location.reload()">다시 도전하기</button>
     </div>
 </div>
 
 <script>
-    // 이미지에서 추출한 단어 데이터
     const vocabulary = [
-        { eng: 'pan', kor: '냄비/팬' }, { eng: 'pot', kor: '단지/솥' },
-        { eng: 'oven', kor: '오븐' }, { eng: 'knife', kor: '칼' },
-        { eng: 'fork', kor: '포크' }, { eng: 'spoon', kor: '숟가락' },
-        { eng: 'dish', kor: '접시' }, { eng: 'bowl', kor: '그릇' },
-        { eng: 'bottle', kor: '병' }, { eng: 'glass', kor: '유리잔' },
-        { eng: 'case', kor: '상자/케이스' }, { eng: 'basket', kor: '바구니' },
-        { eng: 'brush', kor: '솔/빗' }, { eng: 'towel', kor: '수건' },
-        { eng: 'mirror', kor: '거울' }, { eng: 'lamp', kor: '등/램프' },
-        { eng: 'fan', kor: '부채/선풍기' }, { eng: 'candle', kor: '양초' },
-        { eng: 'frame', kor: '틀/액자' }, { eng: 'set the table', kor: '상차림을 하다' }
+        { eng: 'sky', kor: '하늘' }, { eng: 'bicycle', kor: '자전거' }, { eng: 'today', kor: '오늘' },
+        { eng: 'angry', kor: '화난' }, { eng: 'slow', kor: '느린' }, { eng: 'back', kor: '뒤/등' },
+        { eng: 'rice', kor: '쌀/밥' }, { eng: 'about', kor: '~에 대하여' }, { eng: 'person', kor: '사람' },
+        { eng: 'cry', kor: '울다' }, { eng: 'hat', kor: '모자' }, { eng: 'deep', kor: '깊은' },
+        { eng: 'parent', kor: '부모' }, { eng: 'drive', kor: '운전하다' }, { eng: 'often', kor: '종종/자주' },
+        { eng: 'find', kor: '찾다' }, { eng: 'low', kor: '낮은' }, { eng: 'fruit', kor: '과일' },
+        { eng: 'at last', kor: '마침내' }, { eng: 'on one\'s way (to)', kor: '~로 가는 길에' },
+        { eng: 'date', kor: '날짜/데이트' }, { eng: 'talk', kor: '말하다' }, { eng: 'birthday', kor: '생일' },
+        { eng: 'work', kor: '일하다' }, { eng: 'here', kor: '여기' }, { eng: 'country', kor: '나라/시골' },
+        { eng: 'price', kor: '가격' }, { eng: 'by', kor: '~옆에/~에 의해' }, { eng: 'alone', kor: '혼자' },
+        { eng: 'high', kor: '높은' }, { eng: 'set', kor: '놓다/설정하다' }, { eng: 'wall', kor: '벽' },
+        { eng: 'driver', kor: '운전사' }, { eng: 'each', kor: '각각의' }, { eng: 'slowly', kor: '천천히' },
+        { eng: 'table', kor: '탁자' }, { eng: 'pick', kor: '고르다/뽑다' }, { eng: 'cloud', kor: '구름' },
+        { eng: 'find out', kor: '알아내다' }, { eng: 'grow up', kor: '성장하다' }
     ];
 
     let userName = "";
@@ -136,11 +130,14 @@
     let currentIdx = 0;
     let score = 0;
     let setWords = [];
-    const totalQuestionsPerSet = vocabulary.length;
-    const totalSets = 4;
+    let isProcessing = false;
 
     function startGame() {
-        userName = document.getElementById('user-name').value.trim() || "친구";
+        userName = document.getElementById('user-name').value.trim();
+        if(!userName) {
+            alert("이름을 입력해줘! 친구야!");
+            return;
+        }
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('quiz-screen').style.display = 'block';
         loadSet(1);
@@ -154,43 +151,45 @@
         showQuestion();
     }
 
-    // 단어 가리기 로직 (20%, 50%, 100%)
     function maskWord(word, percent) {
-        if (percent === 100) return word.split('').map(c => (c === ' ' ? ' ' : '_')).join('');
+        if (percent === 0) return word;
+        if (percent === 100) return "_ ".repeat(word.length).trim();
+
+        let wordArr = word.split('');
+        let result = [...wordArr];
+        let targetCount = Math.ceil(word.length * (percent / 100));
         
-        let chars = word.split('');
-        let totalToMask = Math.ceil(word.replace(/\s/g, '').length * (percent / 100));
-        let indices = [];
-        
-        for(let i=0; i<chars.length; i++) {
-            if(chars[i] !== ' ') indices.push(i);
+        // 가릴 위치를 무작위로 선정 (공백 제외)
+        let availableIndices = [];
+        for(let i=0; i<word.length; i++) {
+            if(word[i] !== ' ' && word[i] !== '(' && word[i] !== ')') {
+                availableIndices.push(i);
+            }
         }
 
-        // 랜덤하게 글자 위치 선정
-        for(let i=0; i<totalToMask; i++) {
-            if(indices.length === 0) break;
-            let randArrIdx = Math.floor(Math.random() * indices.length);
-            let charIdx = indices.splice(randArrIdx, 1)[0];
-            chars[charIdx] = '_';
+        for(let i=0; i<targetCount && availableIndices.length > 0; i++) {
+            let randomIndex = Math.floor(Math.random() * availableIndices.length);
+            let targetIdx = availableIndices.splice(randomIndex, 1)[0];
+            result[targetIdx] = '_';
         }
-        return chars.join('');
+        return result.join('');
     }
 
     function showQuestion() {
+        isProcessing = false;
         const area = document.getElementById('question-area');
         const feedback = document.getElementById('feedback');
         const stageInfo = document.getElementById('stage-info');
         const progress = document.getElementById('progress-bar');
         
         feedback.innerHTML = "";
-        stageInfo.innerText = `[세트 ${currentSet}/4] ${getSetTitle()}`;
-        progress.innerText = `현재 문제: ${currentIdx + 1} / ${totalQuestionsPerSet}`;
+        stageInfo.innerText = `[세트 ${currentSet}] ${getSetTitle()}`;
+        progress.innerText = `진행도: ${currentIdx + 1} / ${setWords.length}`;
         
         const item = setWords[currentIdx];
         let html = "";
 
         if(currentSet === 1) {
-            // 세트 1: 단어 보고 뜻 찾기 (객관식)
             html = `<div class="word-display">${item.eng}</div><div class="options">`;
             let choices = [item.kor];
             while(choices.length < 4) {
@@ -203,13 +202,12 @@
             });
             html += `</div>`;
         } else {
-            // 세트 2,3,4: 뜻 보고 단어 쓰기 (주관식 가리기)
             let maskPercent = currentSet === 2 ? 20 : (currentSet === 3 ? 50 : 100);
             let hint = maskWord(item.eng, maskPercent);
             html = `
                 <div class="mean-display">${item.kor}</div>
-                <div class="hint-text">${hint}</div>
-                <input type="text" id="answer-input" placeholder="정답을 써보세요!" autocomplete="off" onkeyup="if(window.event.keyCode==13) checkAnswer(this.value)">
+                <div style="font-size: 2rem; letter-spacing: 3px; margin-bottom:20px; color:#666;">${hint}</div>
+                <input type="text" id="answer-input" autocomplete="off" onkeyup="if(window.event.keyCode==13) checkAnswer(this.value)" autofocus>
                 <br><button onclick="checkAnswer(document.getElementById('answer-input').value)">확인!</button>
             `;
         }
@@ -218,33 +216,37 @@
     }
 
     function getSetTitle() {
-        const titles = ["", "뜻 찾기 (객관식)", "단어 채우기 (힌트 많음)", "단어 채우기 (힌트 조금)", "단어 쓰기 (힌트 없음)"];
-        return titles[currentSet];
+        switch(currentSet) {
+            case 1: return "어떤 뜻일까? (객관식)";
+            case 2: return "빈칸 채우기 (힌트 80%)";
+            case 3: return "절반 채우기 (힌트 50%)";
+            case 4: return "직접 써보기 (힌트 없음)";
+        }
     }
 
     function checkAnswer(userAns) {
-        const item = setWords[currentIdx];
-        const correctAns = currentSet === 1 ? item.kor : item.eng;
+        if(isProcessing) return;
+        isProcessing = true;
+
+        const correctAns = currentSet === 1 ? setWords[currentIdx].kor : setWords[currentIdx].eng;
         const feedback = document.getElementById('feedback');
         
-        // 대소문자 무관 및 공백 제거 비교
-        if(userAns.trim().toLowerCase() === correctAns.toLowerCase()) {
-            feedback.innerHTML = "<span class='correct'>정답이에요! 🌟</span>";
+        const isCorrect = userAns.trim().toLowerCase() === correctAns.toLowerCase();
+        
+        if(isCorrect) {
+            feedback.innerHTML = "<span class='correct'>딩동댕! 정답이에요! 🌟</span>";
             score += 10;
+            document.getElementById('current-score').innerText = score;
         } else {
-            feedback.innerHTML = `<span class='wrong'>아쉬워요! 답은 <br>'${correctAns}'</span>`;
+            feedback.innerHTML = `<span class='wrong'>부우~ 정답은 <span style="text-decoration:underline">'${correctAns}'</span></span>`;
         }
-
-        // 버튼 중복 클릭 방지
-        const btns = document.querySelectorAll('button');
-        btns.forEach(b => b.disabled = true);
 
         setTimeout(() => {
             currentIdx++;
-            if(currentIdx < totalQuestionsPerSet) {
+            if(currentIdx < setWords.length) {
                 showQuestion();
-            } else if(currentSet < totalSets) {
-                alert(`세트 ${currentSet} 완료! 다음 세트로 넘어갑니다.`);
+            } else if(currentSet < 4) {
+                alert(`축하해! 세트 ${currentSet}을 완료했어! 다음 단계로 가보자!`);
                 loadSet(currentSet + 1);
             } else {
                 showResult();
@@ -253,17 +255,17 @@
     }
 
     function showResult() {
-        const maxScore = totalQuestionsPerSet * totalSets * 10;
         document.getElementById('quiz-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
-        document.getElementById('final-score').innerText = `${userName}의 총점: ${score} / ${maxScore}점`;
+        const finalScore = document.getElementById('final-score');
+        const evaluation = document.getElementById('evaluation');
         
-        let comment = "";
-        if(score === maxScore) comment = "와우! 완벽해요! 영어 박사님이시네요! 🏆";
-        else if(score >= maxScore * 0.8) comment = "정말 잘했어요! 거의 다 맞췄어요! 👍";
-        else comment = "참 잘했어요! 조금만 더 연습하면 백점이 될 거예요! 💪";
+        const maxScore = vocabulary.length * 4 * 10;
+        finalScore.innerText = `${userName}의 총점: ${score} / ${maxScore}점`;
         
-        document.getElementById('score-comment').innerText = comment;
+        if(score === maxScore) evaluation.innerText = "와우! 당신은 영어 천재인가요? 👑";
+        else if(score > maxScore * 0.8) evaluation.innerText = "정말 훌륭해! 거의 다 맞혔어! 👍";
+        else evaluation.innerText = "조금만 더 연습하면 완벽해질 거야! 화이팅! 💪";
     }
 </script>
 
